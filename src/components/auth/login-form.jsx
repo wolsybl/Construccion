@@ -31,10 +31,20 @@ export function LoginForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!role) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Por favor selecciona un rol antes de iniciar sesión.",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await login(formData);
+      await login(formData); // Llama a la función login que valida el rol en la base de datos
       toast({
         title: "Inicio de sesión exitoso",
         description: `Bienvenido al sistema como ${role}`,

@@ -1,6 +1,7 @@
 // filepath: src/hooks/use-auth.jsx
 import React, { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "@/lib/supabase";
+import { getSelectedRole } from "@/lib/role"; // Importar la función para obtener el rol seleccionado
 
 const AuthContext = createContext(null);
 
@@ -27,26 +28,29 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async ({ email, password }) => {
+    const selectedRole = getSelectedRole(); // Obtener el rol seleccionado por el usuario
+
     const { error, data } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       console.error("Error en el inicio de sesión:", error.message);
       throw new Error(error.message);
     }
 
-    // Obtener el rol del usuario autenticado
+    // Verificar si el usuario pertenece al rol seleccionado
     const { user } = data;
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('role')
       .eq('id', user.id)
-      .single();
+      .eq('role', selectedRole) // Verificar que el rol coincida con el seleccionado
+      .maybeSingle(); // Cambiado de .single() a .maybeSingle() para manejar casos de múltiples filas o ninguna
 
-    if (userError) {
-      console.error("Error al obtener el rol del usuario:", userError.message);
-      throw new Error(userError.message);
+    if (userError || !userData) {
+      console.error("El usuario no pertenece al rol seleccionado o no existe:", userError?.message);
+      throw new Error("El usuario no pertenece al rol seleccionado o no existe.");
     }
 
-    // Agregar el rol al estado del usuario
+    // Si el rol coincide, agregar el usuario al estado
     setUser({ ...user, role: userData.role });
     return { ...user, role: userData.role };
   };
