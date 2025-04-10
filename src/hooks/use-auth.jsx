@@ -32,7 +32,23 @@ export function AuthProvider({ children }) {
       console.error("Error en el inicio de sesión:", error.message);
       throw new Error(error.message);
     }
-    return data.user;
+
+    // Obtener el rol del usuario autenticado
+    const { user } = data;
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (userError) {
+      console.error("Error al obtener el rol del usuario:", userError.message);
+      throw new Error(userError.message);
+    }
+
+    // Agregar el rol al estado del usuario
+    setUser({ ...user, role: userData.role });
+    return { ...user, role: userData.role };
   };
 
   const logout = async () => {
@@ -41,45 +57,8 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const hasPermission = async (permissionName) => {
-    if (!user) return false;
-  
-    try {
-      // Consulta a la base de datos para verificar si el usuario tiene el permiso
-      const { data, error } = await supabase
-        .from('permissions')
-        .select('id')
-        .eq('name', permissionName)
-        .limit(1);
-  
-      if (error) throw error;
-  
-      if (data.length === 0) {
-        console.warn(`El permiso "${permissionName}" no existe en la base de datos.`);
-        return false;
-      }
-  
-      // Aquí puedes implementar lógica adicional para verificar si el usuario tiene el permiso
-      // Por ejemplo, podrías tener una tabla que relacione usuarios con permisos o roles
-      const permissionId = data[0].id;
-  
-      const { data: userPermissions, error: userError } = await supabase
-        .from('user_permissions') // Supongamos que existe una tabla que relaciona usuarios con permisos
-        .select('permission_id')
-        .eq('user_id', user.id)
-        .eq('permission_id', permissionId);
-  
-      if (userError) throw userError;
-  
-      return userPermissions.length > 0;
-    } catch (err) {
-      console.error('Error verificando permisos:', err.message);
-      return false;
-    }
-  };
-
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, hasPermission }}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

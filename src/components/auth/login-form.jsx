@@ -4,15 +4,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/use-toast";
+import { setSelectedRole } from "@/lib/role"; // Importamos la función para almacenar el rol seleccionado
 
 export function LoginForm() {
   const { login } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: "", // Cambiado de username a email
+    email: "",
     password: "",
   });
+  const [role, setRole] = useState(""); // Estado para el rol seleccionado
 
   const handleChange = (e) => {
     setFormData({
@@ -21,15 +23,21 @@ export function LoginForm() {
     });
   };
 
+  const handleRoleChange = (e) => {
+    const selectedRole = e.target.value;
+    setRole(selectedRole);
+    setSelectedRole(selectedRole); // Guardamos el rol seleccionado en la variable global
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await login(formData); // Ahora envía email y password
+      await login(formData);
       toast({
         title: "Inicio de sesión exitoso",
-        description: "Bienvenido al sistema",
+        description: `Bienvenido al sistema como ${role}`,
       });
     } catch (error) {
       toast({
@@ -45,10 +53,10 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Label htmlFor="email">Correo electrónico</Label> {/* Cambiado de Usuario a Correo electrónico */}
+        <Label htmlFor="email">Correo electrónico</Label>
         <Input
           id="email"
-          name="email" // Cambiado de username a email
+          name="email"
           type="email"
           value={formData.email}
           onChange={handleChange}
@@ -65,6 +73,25 @@ export function LoginForm() {
           onChange={handleChange}
           required
         />
+      </div>
+      <div>
+        <Label htmlFor="role">Selecciona tu rol</Label>
+        <select
+          id="role"
+          name="role"
+          value={role}
+          onChange={handleRoleChange}
+          required
+          className="w-full border rounded px-3 py-2"
+        >
+          <option value="" disabled>
+            Selecciona un rol
+          </option>
+          <option value="trabajador">Trabajador</option>
+          <option value="jefe de obra">Jefe de Obra</option>
+          <option value="gerente">Gerente</option>
+          <option value="administrador">Administrador</option>
+        </select>
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
