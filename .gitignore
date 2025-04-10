@@ -1,0 +1,36 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.env
+
+# Supabase
+.supabase/
+supabase/.temp/
+
+# Build outputs
+dist/
+build/
+out/
+
+# React
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+.cache/
+coverage/
+public/static/
+
+# IDEs y sistema operativo
+.DS_Store
+.vscode/
+*.swp
+*.swo
+*.log
+
+# Testing
+coverage/
+jest-cache/

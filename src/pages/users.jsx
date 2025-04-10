@@ -1,18 +1,34 @@
-
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { UserDialog } from "@/components/users/user-dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useAuth } from "@/hooks/use-auth"
+import axios from "axios"
 
 export function UsersPage() {
   const { user: currentUser } = useAuth()
-  const [users, setUsers] = useLocalStorage("users", [])
   const { toast } = useToast()
+  const [users, setUsers] = useState([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
+
+  useEffect(() => {
+    // Cargar usuarios desde la base de datos
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get("/api/users")
+        setUsers(response.data)
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudieron cargar los usuarios",
+        })
+      }
+    }
+    fetchUsers()
+  }, [])
 
   if (currentUser?.role !== "SuperAdmin") {
     return (
@@ -27,18 +43,22 @@ export function UsersPage() {
     )
   }
 
-  const handleSubmit = (userData) => {
+  const handleSubmit = async (userData) => {
     try {
       if (selectedUser) {
+        // Actualizar usuario existente
+        const response = await axios.put(`/api/users/${selectedUser.id}`, userData)
         setUsers(users.map(user => 
-          user.id === selectedUser.id ? { ...user, ...userData } : user
+          user.id === selectedUser.id ? response.data : user
         ))
         toast({
           title: "Usuario actualizado",
           description: "El usuario se ha actualizado correctamente",
         })
       } else {
-        setUsers([...users, { ...userData, id: Date.now() }])
+        // Crear nuevo usuario
+        const response = await axios.post("/api/users", userData)
+        setUsers([...users, response.data])
         toast({
           title: "Usuario creado",
           description: "El usuario se ha creado correctamente",
@@ -60,8 +80,9 @@ export function UsersPage() {
     setDialogOpen(true)
   }
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     try {
+      await axios.delete(`/api/users/${id}`)
       setUsers(users.filter(user => user.id !== id))
       toast({
         title: "Usuario eliminado",
