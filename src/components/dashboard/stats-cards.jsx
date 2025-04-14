@@ -5,19 +5,19 @@ import { Users, Building2, Package, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const statsConfig = {
-  Administrador: [
+  "1": [ //admin
     { title: "Proyectos Activos", value: "8", icon: Building2, color: "text-blue-600" },
     { title: "Personal Total", value: "124", icon: Users, color: "text-green-600" },
     { title: "Informes Pendientes", value: "3", icon: FileText, color: "text-yellow-600" },
     { title: "Tareas en Proceso", value: "45", icon: Package, color: "text-purple-600" },
   ],
-  "Jefe de Obra": [
+  "2": [ // jefe de obra
     { title: "Personal Activo", value: "32", icon: Users, color: "text-blue-600" },
     { title: "Tareas Pendientes", value: "12", icon: FileText, color: "text-yellow-600" },
     { title: "Asistencia Hoy", value: "28", icon: Users, color: "text-green-600" },
     { title: "Incidencias", value: "2", icon: Package, color: "text-red-600" },
   ],
-  "Gerente de Proyecto": [
+  "3": [ // gerente
     { title: "Presupuesto Total", value: "$1.2M", icon: Building2, color: "text-blue-600" },
     { title: "Gastos del Mes", value: "$85K", icon: FileText, color: "text-yellow-600" },
     { title: "Proveedores", value: "18", icon: Users, color: "text-green-600" },

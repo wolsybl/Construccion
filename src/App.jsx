@@ -11,10 +11,10 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { LoadingScreen } from "@/pages/loading-screen";
 
 const ROUTE_PERMISSIONS = {
-  admin: ["/", "/tasks", "/inventory", "/budget", "/users"],
-  gerente: ["/", "/tasks", "/inventory", "/budget"],
-  "jefe de obra": ["/", "/tasks"],
-  trabajador: ["/"]
+  "1": ["/", "/tasks", "/inventory", "/budget", "/users"], //admin
+  "3": ["/", "/tasks", "/inventory", "/budget"], //gerente
+  "2": ["/", "/tasks"], // jefe de obra
+  "4": ["/"] // trabajador
 };
 
 function AppContent() {
@@ -32,7 +32,12 @@ function AppContent() {
     return <WorkerDashboard />;
   }
 
-  const allowedRoutes = ROUTE_PERMISSIONS[profile?.role.toLowerCase()] || [];
+  const userRole = profile?.role.toLowerCase();
+  const allowedRoutes = ROUTE_PERMISSIONS[userRole] || [];
+  
+  console.log("Rol del usuario:", profile?.role); // ← Verifica el rol
+  console.log("Rutas permitidas:", ROUTE_PERMISSIONS[profile?.role.toLowerCase()]); // ← Verifica las rutas
+
   if (!allowedRoutes.includes(location.pathname)) {
     return <Navigate to={allowedRoutes[0] || "/"} />;
   }

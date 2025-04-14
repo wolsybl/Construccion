@@ -1,120 +1,145 @@
-import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase" // Asegúrate de que Supabase esté configurado correctamente
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 
 export function useTasks() {
-  const [tasks, setTasks] = useState([])
+  const [tasks, setTasks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isMutating, setIsMutating] = useState(false);
 
-  // Cargar tareas desde la base de datos al montar el hook
+  // Función para cargar tareas con relaciones
+  const fetchTasks = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("tasks")
+        .select(`
+          *,
+          assigned_to:assigned_to (id, name, email)
+        `)
+        .order("created_at", { ascending: false });
+
+      if (fetchError) throw fetchError;
+      setTasks(data || []);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
+      setError(err);
+      setTasks([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Cargar tareas al montar y proveer función de refresco
   useEffect(() => {
-    const fetchTasks = async () => {
-      const { data, error } = await supabase
-        .from("tasks") // Nombre de la tabla en Supabase
-        .select("*")
+    fetchTasks();
+  }, [fetchTasks]);
 
-      if (error) {
-        console.error("Error fetching tasks:", error)
-      } else {
-        setTasks(data)
-      }
+  // Añadir nueva tarea
+  const addTask = async (taskData) => {
+    setIsMutating(true);
+    try {
+      const newTask = {
+        ...taskData,
+        status: taskData.status || "pendiente",
+        priority: taskData.priority || "media",
+      };
+
+      const { data, error: insertError } = await supabase
+        .from("tasks")
+        .insert(newTask)
+        .select(`
+          *,
+          assigned_to:assigned_to (id, name, email)
+        `);
+
+      if (insertError) throw insertError;
+      
+      setTasks(prev => [data[0], ...prev]);
+      return data[0];
+    } catch (err) {
+      console.error("Error adding task:", err);
+      throw err;
+    } finally {
+      setIsMutating(false);
     }
+  };
 
-    fetchTasks()
-  }, [])
-
-  const addTask = async (task) => {
-    const newTask = {
-      ...task,
-      createdAt: new Date().toISOString(),
-      status: task.status || "pendiente",
-      priority: task.priority || "media",
-    }
-
-    const { data, error } = await supabase
-      .from("tasks")
-      .insert(newTask)
-
-    if (error) {
-      console.error("Error adding task:", error)
-    } else {
-      setTasks([...tasks, data[0]])
-    }
-  }
-
+  // Actualizar tarea existente
   const updateTask = async (id, updates) => {
-    const { data, error } = await supabase
-      .from("tasks")
-      .update({
-        ...updates,
-        updatedAt: new Date().toISOString(),
-      })
-      .eq("id", id)
+    setIsMutating(true);
+    try {
+      const { data, error: updateError } = await supabase
+        .from("tasks")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select(`
+          *,
+          assigned_to:assigned_to (id, name, email)
+        `);
 
-    if (error) {
-      console.error("Error updating task:", error)
-    } else {
-      setTasks(tasks.map(task => (task.id === id ? data[0] : task)))
+      if (updateError) throw updateError;
+      
+      setTasks(prev => prev.map(task => 
+        task.id === id ? data[0] : task
+      ));
+      return data[0];
+    } catch (err) {
+      console.error("Error updating task:", err);
+      throw err;
+    } finally {
+      setIsMutating(false);
     }
-  }
+  };
 
+  // Eliminar tarea
   const deleteTask = async (id) => {
-    const { error } = await supabase
-      .from("tasks")
-      .delete()
-      .eq("id", id)
+    setIsMutating(true);
+    try {
+      const { error: deleteError } = await supabase
+        .from("tasks")
+        .delete()
+        .eq("id", id);
 
-    if (error) {
-      console.error("Error deleting task:", error)
-    } else {
-      setTasks(tasks.filter(task => task.id !== id))
+      if (deleteError) throw deleteError;
+      
+      setTasks(prev => prev.filter(task => task.id !== id));
+    } catch (err) {
+      console.error("Error deleting task:", err);
+      throw err;
+    } finally {
+      setIsMutating(false);
     }
-  }
+  };
 
-  const getTasksByWorker = async (workerName) => {
-    const { data, error } = await supabase
-      .from("tasks")
-      .select("*")
-      .eq("assignedTo", workerName)
+  // Filtros optimizados (ahora trabajan con datos locales)
+  const getTasksByWorker = (workerId) => {
+    return tasks.filter(task => task.assigned_to?.id === workerId);
+  };
 
-    if (error) {
-      console.error("Error fetching tasks by worker:", error)
-      return []
-    }
-    return data
-  }
+  const getTasksByStatus = (status) => {
+    return tasks.filter(task => task.status === status);
+  };
 
-  const getTasksByStatus = async (status) => {
-    const { data, error } = await supabase
-      .from("tasks")
-      .select("*")
-      .eq("status", status)
-
-    if (error) {
-      console.error("Error fetching tasks by status:", error)
-      return []
-    }
-    return data
-  }
-
-  const getTasksByPriority = async (priority) => {
-    const { data, error } = await supabase
-      .from("tasks")
-      .select("*")
-      .eq("priority", priority)
-
-    if (error) {
-      console.error("Error fetching tasks by priority:", error)
-      return []
-    }
-    return data
-  }
+  const getTasksByPriority = (priority) => {
+    return tasks.filter(task => task.priority === priority);
+  };
 
   return {
     tasks,
+    isLoading,
+    error,
+    isMutating,
     addTask,
     updateTask,
     deleteTask,
     getTasksByWorker,
     getTasksByStatus,
     getTasksByPriority,
-  }
+    refreshTasks: fetchTasks, // Para forzar recarga cuando sea necesario
+  };
 }
