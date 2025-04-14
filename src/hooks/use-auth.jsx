@@ -23,7 +23,7 @@ export function AuthProvider({ children }) {
           .from('users')
           .select('*')
           .eq('auth_id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (error || !profile) {
           console.error("Perfil no encontrado:", error?.message);
@@ -48,7 +48,7 @@ export function AuthProvider({ children }) {
             .from('users')
             .select('*')
             .eq('auth_id', session.user.id)
-            .single();
+            .maybeSingle();
           
           setUser(session.user);
           setUserProfile(profile || null);
