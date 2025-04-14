@@ -14,28 +14,40 @@ export function AuthProvider({ children }) {
     const checkAuth = async () => {
       setLoading(true);
       
-      // 1. Verificar sesión existente
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        // 2. Obtener perfil del usuario desde tu tabla
-        const { data: profile, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('auth_id', session.user.id)
-          .maybeSingle();
-
-        if (error || !profile) {
-          console.error("Perfil no encontrado:", error?.message);
-          await supabase.auth.signOut();
-          navigate('/login'); // Redirigir al login si no hay perfil
-        } else {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+        if (sessionError) throw sessionError;
+        
+        if (session?.user) {
+          // Consulta directa sin depender de políticas RLS
+          const { data: profile, error: profileError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('auth_id', session.user.id)
+            .maybeSingle()
+            .abortSignal(new AbortController().signal); // Previene llamadas prolongadas
+    
+          if (profileError) {
+            console.error("Error en consulta:", profileError);
+            await supabase.auth.signOut();
+            return; // Evita navegar para prevenir bucles
+          }
+    
+          if (!profile) {
+            console.warn("Perfil no encontrado para:", session.user.id);
+            await supabase.auth.signOut();
+            return;
+          }
+    
           setUser(session.user);
           setUserProfile(profile);
         }
+      } catch (error) {
+        console.error("Error en checkAuth:", error);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     checkAuth();
@@ -67,31 +79,45 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       // 1. Iniciar sesión con Supabase Auth
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password
       });
-
-      if (error) throw error;
-
-      // 2. Obtener perfil desde tu tabla users
+  
+      if (authError) {
+        console.error('Error en supabase.auth:', authError);
+        throw authError;
+      }
+  
+      // 2. Obtener perfil desde tu tabla users (cambiar a maybeSingle)
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('*')
         .eq('auth_id', data.user.id)
-        .single();
-
-      if (profileError || !profile) {
-        await supabase.auth.signOut();
-        throw new Error("Perfil de usuario no encontrado");
+        .maybeSingle(); // Cambiado a maybeSingle
+  
+      if (profileError) {
+        console.error('Error en consulta users:', profileError);
+        throw new Error("Error al cargar el perfil de usuario");
       }
-
+  
+      if (!profile) {
+        await supabase.auth.signOut();
+        throw new Error("No se encontró perfil de usuario asociado");
+      }
+  
       setUser(data.user);
       setUserProfile(profile);
-      navigate('/dashboard'); // Redirección con react-router
+      navigate('/dashboard');
+      
       return { user: data.user, profile };
     } catch (error) {
-      throw error; // El error será manejado por el componente LoginForm
+      console.error('Error completo en login:', {
+        message: error.message,
+        stack: error.stack,
+        originalError: error
+      });
+      throw error;
     } finally {
       setLoading(false);
     }
