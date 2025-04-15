@@ -85,29 +85,58 @@ export function useBudget() {
         throw new Error("Se requiere un ID de presupuesto para crear un gasto");
       }
 
+      // 1. Primero verificamos el presupuesto seleccionado
+      const { data: budgetData, error: budgetError } = await supabase
+        .from("budget")
+        .select("total")
+        .eq("id", expense.budget_id)
+        .single();
+
+      if (budgetError) throw handleSupabaseError(budgetError);
+      if (!budgetData) throw new Error("Presupuesto no encontrado");
+
+      // 2. Verificamos si hay suficiente presupuesto
+      if (expense.amount > budgetData.total) {
+        throw new Error("El monto del gasto excede el presupuesto disponible");
+      }
+
+      // 3. Creamos el nuevo gasto
       const newExpense = {
         concept: expense.concept,
         amount: expense.amount,
         date: expense.date || new Date().toISOString().split('T')[0],
-        budget_id: expense.budget_id,
-        created_at: new Date().toISOString()
+        budget_id: expense.budget_id
       };
 
-      const { data, error } = await supabase
-        .from("expenses")  // Aseguramos que se inserte en la tabla expenses
+      // 4. Insertamos el gasto en la tabla expenses
+      const { data: expenseData, error: expenseError } = await supabase
+        .from("expenses")
         .insert(newExpense)
-        .select('*');  // Seleccionamos todos los campos después de la inserción
+        .select()
+        .single();
 
-      if (error) throw handleSupabaseError(error);
+      if (expenseError) throw handleSupabaseError(expenseError);
 
+      // 5. Actualizamos el total del presupuesto
+      const newTotal = budgetData.total - expense.amount;
+      const { error: updateError } = await supabase
+        .from("budget")
+        .update({ total: newTotal })
+        .eq("id", expense.budget_id);
+
+      if (updateError) throw handleSupabaseError(updateError);
+
+      // 6. Actualizamos el estado local
       setBudget(prev => ({
         ...prev,
-        expenses: [data[0], ...prev.expenses]
+        expenses: [expenseData, ...prev.expenses]
       }));
 
-      // Actualizamos la lista de presupuestos después de agregar un gasto
+      // 7. Refrescamos los datos
       await fetchBudgetData();
-      return data[0];
+      await fetchAllBudgets();
+
+      return expenseData;
     } catch (err) {
       console.error("Error adding expense:", err);
       throw err;
