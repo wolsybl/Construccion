@@ -10,7 +10,16 @@ export function useBudget() {
   const [error, setError] = useState(null);
   const [isMutating, setIsMutating] = useState(false);
 
-  // Función para cargar datos
+  const handleSupabaseError = (error) => {
+    if (error.code === '406') {
+      return {
+        ...error,
+        message: "Error de permisos: Configura las políticas RLS en Supabase"
+      };
+    }
+    return error;
+  };
+
   const fetchBudgetData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -23,9 +32,8 @@ export function useBudget() {
         supabase.from("expenses").select("*")
       ]);
 
-      if (budgetError || expensesError) {
-        throw budgetError || expensesError;
-      }
+      const error = budgetError || expensesError;
+      if (error) throw handleSupabaseError(error);
 
       setBudget({
         total: budgetData?.total || 0,
@@ -40,12 +48,10 @@ export function useBudget() {
     }
   }, []);
 
-  // Cargar datos iniciales
   useEffect(() => {
     fetchBudgetData();
   }, [fetchBudgetData]);
 
-  // Añadir gasto
   const addExpense = async (expense) => {
     setIsMutating(true);
     try {
@@ -59,11 +65,11 @@ export function useBudget() {
         .insert(newExpense)
         .select();
 
-      if (error) throw error;
+      if (error) throw handleSupabaseError(error);
 
       setBudget(prev => ({
         ...prev,
-        expenses: data[0], ...prev.expenses
+        expenses: [data[0], ...prev.expenses]
       }));
       return data[0];
     } catch (err) {
@@ -74,7 +80,6 @@ export function useBudget() {
     }
   };
 
-  // Actualizar gasto
   const updateExpense = async (id, updates) => {
     setIsMutating(true);
     try {
@@ -87,7 +92,7 @@ export function useBudget() {
         .eq("id", id)
         .select();
 
-      if (error) throw error;
+      if (error) throw handleSupabaseError(error);
 
       setBudget(prev => ({
         ...prev,
@@ -104,7 +109,6 @@ export function useBudget() {
     }
   };
 
-  // Eliminar gasto
   const deleteExpense = async (id) => {
     setIsMutating(true);
     try {
@@ -113,7 +117,7 @@ export function useBudget() {
         .delete()
         .eq("id", id);
 
-      if (error) throw error;
+      if (error) throw handleSupabaseError(error);
 
       setBudget(prev => ({
         ...prev,
@@ -127,7 +131,6 @@ export function useBudget() {
     }
   };
 
-  // Establecer presupuesto total
   const setTotalBudget = async (total) => {
     setIsMutating(true);
     try {
@@ -140,7 +143,7 @@ export function useBudget() {
         })
         .select();
 
-      if (error) throw error;
+      if (error) throw handleSupabaseError(error);
 
       setBudget(prev => ({
         ...prev,

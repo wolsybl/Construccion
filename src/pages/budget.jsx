@@ -8,7 +8,6 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
 export function BudgetPage() {
-  // Hook useBudget modificado (ahora incluye isLoading, error e isMutating)
   const { 
     budget, 
     addExpense, 
@@ -25,33 +24,46 @@ export function BudgetPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
 
-  // MODIFICACIÓN: Cálculos protegidos contra valores undefined
+  // Cálculo de totales con validación adicional
   const totalExpenses = budget?.expenses?.reduce(
-    (sum, expense) => sum + (expense.amount || 0), 
+    (sum, expense) => sum + (Number(expense.amount) || 0), 
     0
   ) || 0;
   
-  const remaining = (budget?.total || 0) - totalExpenses;
+  const remaining = (Number(budget?.total) || 0) - totalExpenses;
 
-  // MODIFICACIÓN: Manejo de errores mejorado
   const handleSubmit = async (expenseData) => {
     try {
+      // Validar que el monto no exceda el presupuesto restante
+      if (!selectedExpense && Number(expenseData.amount) > remaining) {
+        throw new Error("El monto excede el presupuesto restante");
+      }
+
+      // Asegurarse de que los datos coincidan con la estructura de la tabla
+      const sanitizedExpenseData = {
+        concept: expenseData.concept.trim(),
+        amount: Number(expenseData.amount),
+        date: expenseData.date || new Date().toISOString().split('T')[0],
+        budget_id: budget.id
+      };
+
       if (selectedExpense?.id) {
-        await updateExpense(selectedExpense.id, expenseData);
+        await updateExpense(selectedExpense.id, sanitizedExpenseData);
         toast({
           title: "Gasto actualizado",
           description: "El gasto se ha actualizado correctamente",
         });
       } else {
-        await addExpense(expenseData);
+        await addExpense(sanitizedExpenseData);
         toast({
           title: "Gasto registrado",
           description: "El gasto se ha registrado correctamente",
         });
       }
+      
       setDialogOpen(false);
       setSelectedExpense(null);
-      await refreshBudget(); // MODIFICACIÓN: Actualizar datos después de cambios
+      await refreshBudget();
     } catch (error) {
       console.error("Error saving expense:", error);
       toast({
@@ -62,7 +74,6 @@ export function BudgetPage() {
     }
   };
 
-  // MODIFICACIÓN: Manejo de errores en eliminación
   const handleDelete = async (id) => {
     try {
       await deleteExpense(id);
@@ -70,7 +81,7 @@ export function BudgetPage() {
         title: "Gasto eliminado",
         description: "El gasto se ha eliminado correctamente",
       });
-      await refreshBudget(); // Actualizar datos después de eliminar
+      await refreshBudget();
     } catch (error) {
       console.error("Error deleting expense:", error);
       toast({
@@ -91,7 +102,6 @@ export function BudgetPage() {
     setDialogOpen(true);
   };
 
-  // MODIFICACIÓN: Estados de carga y error
   if (isLoading) {
     return (
       <div className="p-8 flex justify-center items-center h-64">
@@ -123,7 +133,7 @@ export function BudgetPage() {
         <h1 className="text-3xl font-bold">Gestión de Presupuesto</h1>
         <Button 
           onClick={handleAddNew}
-          disabled={isMutating} // MODIFICACIÓN: Deshabilitar durante operaciones
+          disabled={isMutating}
         >
           {isMutating ? (
             <>
@@ -136,7 +146,6 @@ export function BudgetPage() {
         </Button>
       </div>
 
-      {/* MODIFICACIÓN: Sección de resumen protegida */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
@@ -144,7 +153,7 @@ export function BudgetPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {formatCurrency(budget?.total || 0)}
+              {formatCurrency(Number(budget?.total) || 0)}
             </p>
           </CardContent>
         </Card>
@@ -153,7 +162,7 @@ export function BudgetPage() {
             <CardTitle>Gastos Totales</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
+            <p className={`text-2xl font-bold ${totalExpenses > (Number(budget?.total) || 0) ? 'text-destructive' : ''}`}>
               {formatCurrency(totalExpenses)}
             </p>
           </CardContent>
@@ -163,33 +172,29 @@ export function BudgetPage() {
             <CardTitle>Restante</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
+            <p className={`text-2xl font-bold ${remaining < 0 ? 'text-destructive' : 'text-green-600'}`}>
               {formatCurrency(remaining)}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* MODIFICACIÓN: Lista de gastos con protección */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {budget?.expenses?.length > 0 ? (
           budget.expenses.map((expense) => (
             <Card key={expense.id}>
               <CardHeader>
                 <CardTitle className="text-xl">
-                  {expense.concept || "Gasto sin nombre"}
+                  {expense.concept}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <p className="text-sm">
-                    Monto: {formatCurrency(expense.amount || 0)}
+                    Monto: {formatCurrency(Number(expense.amount))}
                   </p>
                   <p className="text-sm">
-                    Fecha: {expense.date ? formatDate(expense.date) : "Sin fecha"}
-                  </p>
-                  <p className="text-sm">
-                    Categoría: {expense.category || "Sin categoría"}
+                    Fecha: {formatDate(expense.date)}
                   </p>
                   <div className="flex space-x-2 mt-4">
                     <Button
@@ -231,7 +236,6 @@ export function BudgetPage() {
         )}
       </div>
 
-      {/* MODIFICACIÓN: Diálogo con estado de procesamiento */}
       <ExpenseDialog
         open={dialogOpen}
         onOpenChange={(open) => {
@@ -239,7 +243,9 @@ export function BudgetPage() {
         }}
         onSubmit={handleSubmit}
         expense={selectedExpense}
+        budgetId={budget?.id}
         isProcessing={isMutating}
+        remainingBudget={remaining}
       />
     </div>
   );

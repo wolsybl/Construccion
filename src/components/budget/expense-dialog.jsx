@@ -1,4 +1,3 @@
-
 import React from "react"
 import {
   Dialog,
@@ -10,19 +9,60 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { supabase } from "@/lib/supabase"
+import { useToast } from "@/components/ui/use-toast"
 
-export function ExpenseDialog({ open, onOpenChange, onSubmit, expense }) {
+export function ExpenseDialog({ open, onOpenChange, onSubmit, expense, budgetId }) {
+  const { toast } = useToast()
   const isEditing = Boolean(expense?.id)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     const formData = new FormData(e.target)
-    onSubmit({
+    
+    const expenseData = {
       concept: formData.get("concept"),
       amount: Number(formData.get("amount")),
       date: formData.get("date"),
-      category: formData.get("category"),
-    })
+      budget_id: budgetId // Adding the budget_id from props
+    }
+
+    try {
+      let result
+      if (isEditing) {
+        const { data, error } = await supabase
+          .from('expenses')
+          .update(expenseData)
+          .eq('id', expense.id)
+          .select()
+          .single()
+        
+        if (error) throw error
+        result = data
+      } else {
+        const { data, error } = await supabase
+          .from('expenses')
+          .insert(expenseData)
+          .select()
+          .single()
+        
+        if (error) throw error
+        result = data
+      }
+
+      onSubmit(result)
+      toast({
+        title: isEditing ? "Gasto actualizado" : "Gasto creado",
+        description: "La operación se realizó con éxito"
+      })
+    } catch (error) {
+      console.error('Error:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo guardar el gasto",
+        variant: "destructive"
+      })
+    }
   }
 
   return (
@@ -63,15 +103,6 @@ export function ExpenseDialog({ open, onOpenChange, onSubmit, expense }) {
                 name="date"
                 type="date"
                 defaultValue={expense?.date || new Date().toISOString().split("T")[0]}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="category">Categoría</Label>
-              <Input
-                id="category"
-                name="category"
-                defaultValue={expense?.category || ""}
                 required
               />
             </div>
