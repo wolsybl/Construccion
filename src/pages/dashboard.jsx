@@ -6,7 +6,7 @@ import { StatsCards } from "@/components/dashboard/stats-cards"
 import { useAuth } from "@/hooks/use-auth"
 
 export function Dashboard() {
-  const { user, logout } = useAuth()
+  const { user, profile, logout } = useAuth()
 
   if (!user) {
     return null
@@ -14,11 +14,11 @@ export function Dashboard() {
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar className="w-64 border-r" role={user.role} onLogout={logout} />
+      <Sidebar className="w-64 border-r" role={profile?.role} onLogout={logout} />
       <main className="flex-1 p-8">
         <div className="space-y-8">
           <WelcomeCard user={user} />
-          <StatsCards role={user.role} />
+          <StatsCards role={profile?.role} />
           
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             <div className="col-span-4">

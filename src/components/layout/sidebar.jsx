@@ -51,9 +51,9 @@ const menuItems = {
   ]
 }
 
-export function Sidebar({ className, roleId, onLogout }) {
+export function Sidebar({ className, role, onLogout }) {
   const navigate = useNavigate()
-  const roleName = ROLE_MAPPING[roleId] || "Trabajador"
+  const roleName = ROLE_MAPPING[role] || "Trabajador"
   const items = menuItems[roleName] || []
 
   const handleNavigation = (href) => {

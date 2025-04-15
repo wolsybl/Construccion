@@ -1,118 +1,169 @@
-import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase" // Asegúrate de que Supabase esté configurado correctamente
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 
 export function useBudget() {
-  const [budget, setBudget] = useState({ total: 0, expenses: [] })
+  const [budget, setBudget] = useState({ 
+    total: 0, 
+    expenses: [] 
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isMutating, setIsMutating] = useState(false);
 
-  // Cargar presupuesto y gastos desde la base de datos al montar el hook
-  useEffect(() => {
-    const fetchBudget = async () => {
-      try {
-        // Obtener el presupuesto total
-        const { data: budgetData, error: budgetError } = await supabase
-          .from("budget")
-          .select("*")
-          .single()
+  // Función para cargar datos
+  const fetchBudgetData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [
+        { data: budgetData, error: budgetError },
+        { data: expensesData, error: expensesError }
+      ] = await Promise.all([
+        supabase.from("budget").select("*").single(),
+        supabase.from("expenses").select("*")
+      ]);
 
-        if (budgetError) {
-          console.error("Error fetching budget:", budgetError)
-        }
-
-        // Obtener los gastos
-        const { data: expensesData, error: expensesError } = await supabase
-          .from("expenses")
-          .select("*")
-
-        if (expensesError) {
-          console.error("Error fetching expenses:", expensesError)
-        }
-
-        setBudget({
-          total: budgetData?.total || 0,
-          expenses: expensesData || [],
-        })
-      } catch (error) {
-        console.error("Error fetching budget and expenses:", error)
+      if (budgetError || expensesError) {
+        throw budgetError || expensesError;
       }
+
+      setBudget({
+        total: budgetData?.total || 0,
+        expenses: expensesData || []
+      });
+    } catch (err) {
+      console.error("Error fetching budget data:", err);
+      setError(err);
+      setBudget({ total: 0, expenses: [] });
+    } finally {
+      setIsLoading(false);
     }
+  }, []);
 
-    fetchBudget()
-  }, [])
+  // Cargar datos iniciales
+  useEffect(() => {
+    fetchBudgetData();
+  }, [fetchBudgetData]);
 
+  // Añadir gasto
   const addExpense = async (expense) => {
-    const newExpense = {
-      ...expense,
-      createdAt: new Date().toISOString(),
+    setIsMutating(true);
+    try {
+      const newExpense = {
+        ...expense,
+        created_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from("expenses")
+        .insert(newExpense)
+        .select();
+
+      if (error) throw error;
+
+      setBudget(prev => ({
+        ...prev,
+        expenses: data[0], ...prev.expenses
+      }));
+      return data[0];
+    } catch (err) {
+      console.error("Error adding expense:", err);
+      throw err;
+    } finally {
+      setIsMutating(false);
     }
+  };
 
-    const { data, error } = await supabase
-      .from("expenses")
-      .insert(newExpense)
-
-    if (error) {
-      console.error("Error adding expense:", error)
-    } else {
-      setBudget({
-        ...budget,
-        expenses: [...budget.expenses, data[0]],
-      })
-    }
-  }
-
+  // Actualizar gasto
   const updateExpense = async (id, updates) => {
-    const { data, error } = await supabase
-      .from("expenses")
-      .update({
-        ...updates,
-        updatedAt: new Date().toISOString(),
-      })
-      .eq("id", id)
+    setIsMutating(true);
+    try {
+      const { data, error } = await supabase
+        .from("expenses")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select();
 
-    if (error) {
-      console.error("Error updating expense:", error)
-    } else {
-      setBudget({
-        ...budget,
-        expenses: budget.expenses.map((expense) =>
-          expense.id === id ? data[0] : expense
-        ),
-      })
+      if (error) throw error;
+
+      setBudget(prev => ({
+        ...prev,
+        expenses: prev.expenses.map(exp => 
+          exp.id === id ? data[0] : exp
+        )
+      }));
+      return data[0];
+    } catch (err) {
+      console.error("Error updating expense:", err);
+      throw err;
+    } finally {
+      setIsMutating(false);
     }
-  }
+  };
 
+  // Eliminar gasto
   const deleteExpense = async (id) => {
-    const { error } = await supabase
-      .from("expenses")
-      .delete()
-      .eq("id", id)
+    setIsMutating(true);
+    try {
+      const { error } = await supabase
+        .from("expenses")
+        .delete()
+        .eq("id", id);
 
-    if (error) {
-      console.error("Error deleting expense:", error)
-    } else {
-      setBudget({
-        ...budget,
-        expenses: budget.expenses.filter((expense) => expense.id !== id),
-      })
+      if (error) throw error;
+
+      setBudget(prev => ({
+        ...prev,
+        expenses: prev.expenses.filter(exp => exp.id !== id)
+      }));
+    } catch (err) {
+      console.error("Error deleting expense:", err);
+      throw err;
+    } finally {
+      setIsMutating(false);
     }
-  }
+  };
 
+  // Establecer presupuesto total
   const setTotalBudget = async (total) => {
-    const { data, error } = await supabase
-      .from("budget")
-      .upsert({ id: 1, total, updatedAt: new Date().toISOString() }) // Usar `upsert` para insertar o actualizar
+    setIsMutating(true);
+    try {
+      const { data, error } = await supabase
+        .from("budget")
+        .upsert({ 
+          id: 1, 
+          total,
+          updated_at: new Date().toISOString() 
+        })
+        .select();
 
-    if (error) {
-      console.error("Error setting total budget:", error)
-    } else {
-      setBudget({ ...budget, total: data[0]?.total || total })
+      if (error) throw error;
+
+      setBudget(prev => ({
+        ...prev,
+        total: data[0]?.total || total
+      }));
+      return data[0]?.total;
+    } catch (err) {
+      console.error("Error setting budget:", err);
+      throw err;
+    } finally {
+      setIsMutating(false);
     }
-  }
+  };
 
   return {
     budget,
+    isLoading,
+    error,
+    isMutating,
     addExpense,
     updateExpense,
     deleteExpense,
     setTotalBudget,
-  }
+    refreshBudget: fetchBudgetData
+  };
 }
