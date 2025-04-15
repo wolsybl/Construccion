@@ -9,11 +9,20 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
+import { useBudget } from "@/hooks/use-budget" // Importamos el hook
 
-export function ExpenseDialog({ open, onOpenChange, onSubmit, expense, budgetId }) {
+export function ExpenseDialog({ open, onOpenChange, onSubmit, expense }) {
   const { toast } = useToast()
+  const { budgets } = useBudget() // Obtenemos la lista de presupuestos
   const isEditing = Boolean(expense?.id)
 
   const handleSubmit = async (e) => {
@@ -24,7 +33,7 @@ export function ExpenseDialog({ open, onOpenChange, onSubmit, expense, budgetId 
       concept: formData.get("concept"),
       amount: Number(formData.get("amount")),
       date: formData.get("date"),
-      budget_id: budgetId // Adding the budget_id from props
+      budget_id: formData.get("budget_id") // Obtenemos el presupuesto seleccionado
     }
 
     try {
@@ -75,6 +84,28 @@ export function ExpenseDialog({ open, onOpenChange, onSubmit, expense, budgetId 
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
+            {/* Selector de presupuesto */}
+            <div>
+              <Label htmlFor="budget_id">Presupuesto</Label>
+              <Select
+                name="budget_id"
+                defaultValue={expense?.budget_id}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un presupuesto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {budgets.map((budget) => (
+                    <SelectItem key={budget.id} value={budget.id}>
+                      {budget.name || `Presupuesto #${budget.id} - ${budget.total}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Campos existentes */}
             <div>
               <Label htmlFor="concept">Concepto</Label>
               <Input

@@ -6,6 +6,7 @@ export function useBudget() {
     total: 0, 
     expenses: [] 
   });
+  const [budgets, setBudgets] = useState([]); // Nuevo estado para la lista de presupuestos
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isMutating, setIsMutating] = useState(false);
@@ -48,22 +49,54 @@ export function useBudget() {
     }
   }, []);
 
+  // Nueva función para obtener todos los presupuestos
+  const fetchAllBudgets = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("budget")
+        .select("*")
+        .order('created_at', { ascending: false });
+
+      if (error) throw handleSupabaseError(error);
+      
+      // Agregar console.log para mostrar los IDs
+      console.log("Presupuestos encontrados:", data?.map(budget => ({
+        id: budget.id,
+        total: budget.total
+      })));
+      
+      setBudgets(data || []);
+      return data;
+    } catch (err) {
+      console.error("Error fetching budgets:", err);
+      throw err;
+    }
+  }, []);
+
   useEffect(() => {
     fetchBudgetData();
-  }, [fetchBudgetData]);
+    fetchAllBudgets(); // Cargar los presupuestos al montar el componente
+  }, [fetchBudgetData, fetchAllBudgets]);
 
   const addExpense = async (expense) => {
     setIsMutating(true);
     try {
+      if (!expense.budget_id) {
+        throw new Error("Se requiere un ID de presupuesto para crear un gasto");
+      }
+
       const newExpense = {
-        ...expense,
-        created_at: new Date().toISOString(),
+        concept: expense.concept,
+        amount: expense.amount,
+        date: expense.date || new Date().toISOString().split('T')[0],
+        budget_id: expense.budget_id,
+        created_at: new Date().toISOString()
       };
 
       const { data, error } = await supabase
-        .from("expenses")
+        .from("expenses")  // Aseguramos que se inserte en la tabla expenses
         .insert(newExpense)
-        .select();
+        .select('*');  // Seleccionamos todos los campos después de la inserción
 
       if (error) throw handleSupabaseError(error);
 
@@ -71,6 +104,9 @@ export function useBudget() {
         ...prev,
         expenses: [data[0], ...prev.expenses]
       }));
+
+      // Actualizamos la lista de presupuestos después de agregar un gasto
+      await fetchBudgetData();
       return data[0];
     } catch (err) {
       console.error("Error adding expense:", err);
@@ -160,6 +196,7 @@ export function useBudget() {
 
   return {
     budget,
+    budgets, // Exponemos los presupuestos
     isLoading,
     error,
     isMutating,
@@ -167,6 +204,7 @@ export function useBudget() {
     updateExpense,
     deleteExpense,
     setTotalBudget,
-    refreshBudget: fetchBudgetData
+    refreshBudget: fetchBudgetData,
+    refreshBudgets: fetchAllBudgets // Exponemos la función para actualizar presupuestos
   };
 }
