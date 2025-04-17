@@ -2,13 +2,16 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ExpenseDialog } from "@/components/budget/expense-dialog";
+import { IncomeDialog } from "@/components/budget/income-dialog";
 import { useBudget } from "@/hooks/use-budget";
 import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom"; // Add this import at the top
 
 export function BudgetPage() {
+  const navigate = useNavigate(); // Add this hook
   const { 
     budget, 
     addExpense, 
@@ -22,10 +25,17 @@ export function BudgetPage() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
+  const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
+  const [selectedIncome, setSelectedIncome] = useState(null);
 
   // Cálculo de totales con validación adicional
   const totalExpenses = budget?.expenses?.reduce(
     (sum, expense) => sum + (Number(expense.amount) || 0), 
+    0
+  ) || 0;
+
+  const totalIncomes = budget?.incomes?.reduce(
+    (sum, income) => sum + (Number(income.amount) || 0), 
     0
   ) || 0;
   
@@ -119,6 +129,60 @@ export function BudgetPage() {
     setDialogOpen(true);
   };
 
+  const handleIncomeSubmit = async (incomeData) => {
+    try {
+      const sanitizedIncomeData = {
+        concept: incomeData.concept.trim(),
+        amount: Number(incomeData.amount),
+        date: incomeData.date || new Date().toISOString().split('T')[0],
+        budget_id: budget.id
+      };
+
+      await refreshBudget();
+    } catch (error) {
+      console.error("Error saving income:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "No se pudo guardar el ingreso",
+      });
+    }
+  };
+
+  const handleDeleteIncome = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('incomes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await refreshBudget();
+      toast({
+        title: "Ingreso eliminado",
+        description: "El ingreso se ha eliminado correctamente"
+      });
+    } catch (error) {
+      console.error("Error al eliminar el ingreso:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo eliminar el ingreso: " + error.message
+      });
+    }
+  };
+
+  const handleEditIncome = (income) => {
+    setSelectedIncome(income);
+    setIncomeDialogOpen(true);
+  };
+
+  const handleAddNewIncome = () => {
+    setSelectedIncome(null);
+    setIncomeDialogOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="p-8 flex justify-center items-center h-64">
@@ -147,20 +211,31 @@ export function BudgetPage() {
   return (
     <div className="p-8 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Gestión de Presupuesto</h1>
-        <Button 
-          onClick={handleAddNew}
-          disabled={isMutating}
-        >
-          {isMutating ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Procesando...
-            </>
-          ) : (
-            "Nuevo Gasto"
-          )}
-        </Button>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2"
+          >
+            ← Volver
+          </Button>
+          <h1 className="text-3xl font-bold">Gestión de Presupuesto</h1>
+        </div>
+        <div className="space-x-4">
+          <Button 
+            onClick={handleAddNew}
+            disabled={isMutating}
+          >
+            Nuevo Gasto
+          </Button>
+          <Button 
+            onClick={handleAddNewIncome}
+            disabled={isMutating}
+            variant="outline"
+          >
+            Nuevo Ingreso
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -252,6 +327,16 @@ export function BudgetPage() {
           </div>
         )}
       </div>
+
+      <IncomeDialog
+        open={incomeDialogOpen}
+        onOpenChange={(open) => {
+          if (!isMutating) setIncomeDialogOpen(open);
+        }}
+        onSubmit={handleIncomeSubmit}
+        income={selectedIncome}
+        budgetId={budget?.id}
+      />
 
       <ExpenseDialog
         open={dialogOpen}
