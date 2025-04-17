@@ -9,7 +9,7 @@ export function cn(...inputs) {
 export function formatCurrency(amount) {
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
-    currency: 'EUR'
+    currency: 'COP'
   }).format(amount)
 }
 

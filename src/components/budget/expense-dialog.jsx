@@ -26,53 +26,63 @@ export function ExpenseDialog({ open, onOpenChange, onSubmit, expense }) {
   const isEditing = Boolean(expense?.id)
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    const formData = new FormData(e.target)
+    e.preventDefault();
+    const formData = new FormData(e.target);
     
+    // Crear objeto con los datos del gasto
     const expenseData = {
       concept: formData.get("concept"),
       amount: Number(formData.get("amount")),
       date: formData.get("date"),
-      budget_id: formData.get("budget_id") // Obtenemos el presupuesto seleccionado
-    }
+      budget_id: formData.get("budget_id")
+    };
 
     try {
-      let result
       if (isEditing) {
+        // Lógica de edición existente
         const { data, error } = await supabase
           .from('expenses')
           .update(expenseData)
           .eq('id', expense.id)
           .select()
-          .single()
+          .single();
         
-        if (error) throw error
-        result = data
+        if (error) throw error;
+        onSubmit(data);
       } else {
+        // Nueva lógica para insertar gasto
         const { data, error } = await supabase
           .from('expenses')
-          .insert(expenseData)
+          .insert([expenseData])
           .select()
-          .single()
+          .single();
         
-        if (error) throw error
-        result = data
+        if (error) {
+          console.error('Error al insertar gasto:', error);
+          throw error;
+        }
+
+        // Llamar a onSubmit con el nuevo gasto
+        onSubmit(data);
       }
 
-      onSubmit(result)
+      // Mostrar mensaje de éxito
       toast({
         title: isEditing ? "Gasto actualizado" : "Gasto creado",
         description: "La operación se realizó con éxito"
-      })
+      });
+
+      // Cerrar el diálogo
+      onOpenChange(false);
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Error:', error);
       toast({
         title: "Error",
-        description: "No se pudo guardar el gasto",
+        description: error.message || "No se pudo guardar el gasto",
         variant: "destructive"
-      })
+      });
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -98,7 +108,7 @@ export function ExpenseDialog({ open, onOpenChange, onSubmit, expense }) {
                 <SelectContent>
                   {budgets.map((budget) => (
                     <SelectItem key={budget.id} value={budget.id}>
-                      {budget.name || `Presupuesto #${budget.id} - ${budget.total}`}
+                      {budget.budget_name || `Presupuesto #${budget.id} - ${budget.total}`}
                     </SelectItem>
                   ))}
                 </SelectContent>

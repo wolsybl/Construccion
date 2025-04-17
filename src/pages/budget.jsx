@@ -6,14 +6,13 @@ import { useBudget } from "@/hooks/use-budget";
 import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export function BudgetPage() {
   const { 
     budget, 
     addExpense, 
     updateExpense, 
-    deleteExpense, 
-    setTotalBudget,
     isLoading,
     error,
     isMutating,
@@ -76,18 +75,36 @@ export function BudgetPage() {
 
   const handleDelete = async (id) => {
     try {
-      await deleteExpense(id);
+      // Primero obtenemos el gasto para saber su monto
+      const {error: fetchError } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Eliminamos el gasto de la base de datos
+      const { error: deleteError } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      // Actualizamos el estado local
+      await refreshBudget();
+
       toast({
         title: "Gasto eliminado",
-        description: "El gasto se ha eliminado correctamente",
+        description: "El gasto se ha eliminado correctamente"
       });
-      await refreshBudget();
     } catch (error) {
-      console.error("Error deleting expense:", error);
+      console.error("Error al eliminar el gasto:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "No se pudo eliminar el gasto",
+        description: "No se pudo eliminar el gasto: " + error.message
       });
     }
   };

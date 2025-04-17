@@ -62,6 +62,7 @@ export function useBudget() {
       // Agregar console.log para mostrar los IDs
       console.log("Presupuestos encontrados:", data?.map(budget => ({
         id: budget.id,
+        name: budget.budget_name,
         total: budget.total
       })));
       
