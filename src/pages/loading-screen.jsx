@@ -1,9 +1,28 @@
 // components/loading-screen.jsx
-export const LoadingScreen = () => (
+import React, { useEffect } from 'react';
+import { Loader2 } from "lucide-react";
+
+export function LoadingScreen() {
+  useEffect(() => {
+    // Temporizador para recargar después de 10 segundos
+    const timeout = setTimeout(() => {
+      console.log("Recargando página por timeout en loading...");
+      window.location.reload();
+    }, 10000); // 10 segundos
+
+    // Cleanup del temporizador
+    return () => clearTimeout(timeout);
+  }, []);
+
+  return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="flex flex-col items-center">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <div className="text-xl font-semibold">Cargando aplicación...</div>
+      <div className="text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+        <h2 className="text-lg font-medium">Cargando...</h2>
+        <p className="text-sm text-muted-foreground mt-2">
+          Si la carga demora demasiado, la página se recargará automáticamente
+        </p>
       </div>
     </div>
   );
+}

@@ -4,7 +4,8 @@ import { supabase } from "@/lib/supabase";
 export function useBudget() {
   const [budget, setBudget] = useState({ 
     total: 0, 
-    expenses: [] 
+    expenses: [],
+    incomes: [] // Incluir ingresos en el estado inicial
   });
   const [budgets, setBudgets] = useState([]); // Nuevo estado para la lista de presupuestos
   const [isLoading, setIsLoading] = useState(true);
@@ -22,28 +23,30 @@ export function useBudget() {
   };
 
   const fetchBudgetData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
     try {
       const [
         { data: budgetData, error: budgetError },
-        { data: expensesData, error: expensesError }
+        { data: expensesData, error: expensesError },
+        { data: incomesData, error: incomesError } // Agregar consulta de ingresos
       ] = await Promise.all([
         supabase.from("budget").select("*").single(),
-        supabase.from("expenses").select("*")
+        supabase.from("expenses").select("*"),
+        supabase.from("incomes").select("*") // Nueva consulta para ingresos
       ]);
 
-      const error = budgetError || expensesError;
+      const error = budgetError || expensesError || incomesError;
       if (error) throw handleSupabaseError(error);
 
       setBudget({
+        ...budgetData,
         total: budgetData?.total || 0,
-        expenses: expensesData || []
+        expenses: expensesData || [],
+        incomes: incomesData || [] // Agregar ingresos al estado
       });
     } catch (err) {
       console.error("Error fetching budget data:", err);
       setError(err);
-      setBudget({ total: 0, expenses: [] });
+      setBudget({ total: 0, expenses: [], incomes: [] }); // Incluir incomes en el estado por defecto
     } finally {
       setIsLoading(false);
     }
@@ -62,6 +65,7 @@ export function useBudget() {
       // Agregar console.log para mostrar los IDs
       console.log("Presupuestos encontrados:", data?.map(budget => ({
         id: budget.id,
+        name: budget.budget_name,
         total: budget.total
       })));
       
