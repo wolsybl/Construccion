@@ -16,6 +16,8 @@ export function BudgetPage() {
     budget, 
     addExpense, 
     updateExpense, 
+    addIncome,      // Agregar
+    updateIncome,   // Agregar
     isLoading,
     error,
     isMutating,
@@ -131,13 +133,44 @@ export function BudgetPage() {
 
   const handleIncomeSubmit = async (incomeData) => {
     try {
-      const sanitizedIncomeData = {
-        concept: incomeData.concept.trim(),
-        amount: Number(incomeData.amount),
-        date: incomeData.date || new Date().toISOString().split('T')[0],
-        budget_id: budget.id
-      };
+      if (selectedIncome?.id) {
+        // Si estamos editando, usamos la operación directa con Supabase
+        const { data, error } = await supabase
+          .from('incomes')
+          .update({
+            concept: incomeData.concept,
+            amount: incomeData.amount,
+            date: incomeData.date,
+            budget_id: incomeData.budget_id
+          })
+          .eq('id', selectedIncome.id)
+          .select()
+          .single();
 
+        if (error) throw error;
+        
+        toast({
+          title: "Ingreso actualizado",
+          description: "El ingreso se ha actualizado correctamente",
+        });
+      } else {
+        // Si es nuevo, insertamos
+        const { data, error } = await supabase
+          .from('incomes')
+          .insert([incomeData])
+          .select()
+          .single();
+
+        if (error) throw error;
+        
+        toast({
+          title: "Ingreso registrado",
+          description: "El ingreso se ha registrado correctamente",
+        });
+      }
+      
+      setIncomeDialogOpen(false);
+      setSelectedIncome(null);
       await refreshBudget();
     } catch (error) {
       console.error("Error saving income:", error);
@@ -238,7 +271,7 @@ export function BudgetPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle>Presupuesto Total</CardTitle>
@@ -246,6 +279,16 @@ export function BudgetPage() {
           <CardContent>
             <p className="text-2xl font-bold">
               {formatCurrency(Number(budget?.total) || 0)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Ingresos Totales</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600">
+              {formatCurrency(totalIncomes)}
             </p>
           </CardContent>
         </Card>
@@ -271,6 +314,8 @@ export function BudgetPage() {
         </Card>
       </div>
 
+      {/* Sección de Gastos */}
+      <h2 className="text-2xl font-bold mt-8">Gastos</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {budget?.expenses?.length > 0 ? (
           budget.expenses.map((expense) => (
@@ -323,6 +368,65 @@ export function BudgetPage() {
               disabled={isMutating}
             >
               Registrar primer gasto
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Nueva Sección de Ingresos */}
+      <h2 className="text-2xl font-bold mt-8">Ingresos</h2>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {budget?.incomes?.length > 0 ? (
+          budget.incomes.map((income) => (
+            <Card key={income.id}>
+              <CardHeader>
+                <CardTitle className="text-xl">
+                  {income.concept}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <p className="text-sm">
+                    Monto: {formatCurrency(Number(income.amount))}
+                  </p>
+                  <p className="text-sm">
+                    Fecha: {formatDate(income.date)}
+                  </p>
+                  <div className="flex space-x-2 mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditIncome(income)}
+                      disabled={isMutating}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteIncome(income.id)}
+                      disabled={isMutating}
+                    >
+                      {isMutating ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Eliminar"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-full text-center py-12">
+            <p>No hay ingresos registrados</p>
+            <Button 
+              onClick={handleAddNewIncome}
+              className="mt-4"
+              disabled={isMutating}
+            >
+              Registrar primer ingreso
             </Button>
           </div>
         )}

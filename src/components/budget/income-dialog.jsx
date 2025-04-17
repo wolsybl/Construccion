@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import { supabase } from "@/lib/supabase"
 import { useBudget } from "@/hooks/use-budget"
 
 export function IncomeDialog({ open, onOpenChange, onSubmit, income }) {
@@ -30,44 +29,16 @@ export function IncomeDialog({ open, onOpenChange, onSubmit, income }) {
     const formData = new FormData(e.target)
     
     const incomeData = {
-      concept: formData.get("concept"),
+      concept: formData.get("concept").trim(),
       amount: Number(formData.get("amount")),
       date: formData.get("date"),
       budget_id: formData.get("budget_id")
     }
 
     try {
-      if (isEditing) {
-        const { data, error } = await supabase
-          .from('incomes')
-          .update(incomeData)
-          .eq('id', income.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        onSubmit(data);
-        
-        toast({
-          title: "Ingreso actualizado",
-          description: "El ingreso se ha actualizado correctamente"
-        });
-      } else {
-        const { data, error } = await supabase
-          .from('incomes')
-          .insert([incomeData])
-          .select()
-          .single();
-
-        if (error) throw error;
-        onSubmit(data);
-        
-        toast({
-          title: "Ingreso registrado",
-          description: "El ingreso se ha registrado correctamente"
-        });
-      }
-
+      // En lugar de hacer las operaciones de base de datos aquí,
+      // pasamos los datos al componente padre
+      onSubmit(incomeData);
       onOpenChange(false);
     } catch (error) {
       console.error('Error:', error);
