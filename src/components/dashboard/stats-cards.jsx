@@ -28,19 +28,7 @@ const statsConfig = {
     { title: "Pedidos Pendientes", value: "8", icon: FileText, color: "text-yellow-600" },
     { title: "Proveedores", value: "12", icon: Users, color: "text-green-600" },
     { title: "Alertas Stock", value: "3", icon: Package, color: "text-red-600" },
-  ],
-  "Director de Obra": [
-    { title: "Avance Global", value: "75%", icon: Building2, color: "text-blue-600" },
-    { title: "Proyectos", value: "3", icon: FileText, color: "text-yellow-600" },
-    { title: "Personal Total", value: "87", icon: Users, color: "text-green-600" },
-    { title: "Informes Nuevos", value: "5", icon: Package, color: "text-purple-600" },
-  ],
-  "SuperAdmin": [
-    { title: "Usuarios Totales", value: "45", icon: Users, color: "text-blue-600" },
-    { title: "Proyectos Activos", value: "12", icon: Building2, color: "text-green-600" },
-    { title: "Reportes Pendientes", value: "8", icon: FileText, color: "text-yellow-600" },
-    { title: "Alertas Sistema", value: "3", icon: Package, color: "text-red-600" },
-  ],
+  ]
 }
 
 export function StatsCards({ role }) {

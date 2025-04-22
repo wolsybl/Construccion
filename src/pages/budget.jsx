@@ -45,12 +45,6 @@ export function BudgetPage() {
 
   const handleSubmit = async (expenseData) => {
     try {
-      // Validar que el monto no exceda el presupuesto restante
-      if (!selectedExpense && Number(expenseData.amount) > remaining) {
-        throw new Error("El monto excede el presupuesto restante");
-      }
-
-      // Asegurarse de que los datos coincidan con la estructura de la tabla
       const sanitizedExpenseData = {
         concept: expenseData.concept.trim(),
         amount: Number(expenseData.amount),
@@ -59,13 +53,45 @@ export function BudgetPage() {
       };
 
       if (selectedExpense?.id) {
+        // Si es una edición, primero restauramos el monto anterior al presupuesto
+        const { data: oldExpense, error: fetchError } = await supabase
+          .from('expenses')
+          .select('amount')
+          .eq('id', selectedExpense.id)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        // Calculamos la diferencia para actualizar el presupuesto
+        const amountDifference = Number(oldExpense.amount) - Number(expenseData.amount);
+        
+        // Actualizamos el gasto
         await updateExpense(selectedExpense.id, sanitizedExpenseData);
+        
+        // Actualizamos el total del presupuesto
+        const { error: updateError } = await supabase
+          .from('budget')
+          .update({ total: Number(budget.total) + amountDifference })
+          .eq('id', budget.id);
+
+        if (updateError) throw updateError;
+
         toast({
           title: "Gasto actualizado",
           description: "El gasto se ha actualizado correctamente",
         });
       } else {
+        // Si es un nuevo gasto
         await addExpense(sanitizedExpenseData);
+        
+        // Actualizamos el total del presupuesto
+        const { error: updateError } = await supabase
+          .from('budget')
+          .update({ total: Number(budget.total) - Number(expenseData.amount) })
+          .eq('id', budget.id);
+
+        if (updateError) throw updateError;
+
         toast({
           title: "Gasto registrado",
           description: "El gasto se ha registrado correctamente",
@@ -88,7 +114,7 @@ export function BudgetPage() {
   const handleDelete = async (id) => {
     try {
       // Primero obtenemos el gasto para saber su monto
-      const {error: fetchError } = await supabase
+      const { data: expense, error: fetchError } = await supabase
         .from('expenses')
         .select('*')
         .eq('id', id)
@@ -96,7 +122,7 @@ export function BudgetPage() {
 
       if (fetchError) throw fetchError;
 
-      // Eliminamos el gasto de la base de datos
+      // Eliminamos el gasto
       const { error: deleteError } = await supabase
         .from('expenses')
         .delete()
@@ -104,9 +130,15 @@ export function BudgetPage() {
 
       if (deleteError) throw deleteError;
 
-      // Actualizamos el estado local
-      await refreshBudget();
+      // Restauramos el monto al presupuesto
+      const { error: updateError } = await supabase
+        .from('budget')
+        .update({ total: Number(budget.total) + Number(expense.amount) })
+        .eq('id', budget.id);
 
+      if (updateError) throw updateError;
+
+      await refreshBudget();
       toast({
         title: "Gasto eliminado",
         description: "El gasto se ha eliminado correctamente"
@@ -214,6 +246,12 @@ export function BudgetPage() {
   const handleAddNewIncome = () => {
     setSelectedIncome(null);
     setIncomeDialogOpen(true);
+  };
+
+  const handleExpenseSuccess = async () => {
+    setDialogOpen(false);
+    setSelectedExpense(null);
+    await refreshBudget();
   };
 
   if (isLoading) {
@@ -452,6 +490,7 @@ export function BudgetPage() {
         budgetId={budget?.id}
         isProcessing={isMutating}
         remainingBudget={remaining}
+        onSuccess={handleExpenseSuccess}
       />
     </div>
   );
