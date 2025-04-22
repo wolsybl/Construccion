@@ -1,5 +1,5 @@
-
-import React from "react"
+import React, { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabase"
 import {
   Dialog,
   DialogContent,
@@ -14,13 +14,29 @@ import { useAuth } from "@/hooks/use-auth"
 
 export function TaskDialog({ open, onOpenChange, onSubmit, task }) {
   const isEditing = Boolean(task?.id)
-  
-  // Lista de trabajadores disponibles
-  const workers = [
-    { id: 4, name: "Juan Pérez", position: "Albañil" },
-    { id: 5, name: "María García", position: "Electricista" },
-    // Aquí se pueden agregar más trabajadores
-  ]
+  const [workers, setWorkers] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchWorkers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, name')
+          .eq('role', 4) // Role 4 corresponde a Trabajador
+          
+        if (error) throw error
+        
+        setWorkers(data || [])
+      } catch (error) {
+        console.error('Error fetching workers:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchWorkers()
+  }, [])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -70,11 +86,12 @@ export function TaskDialog({ open, onOpenChange, onSubmit, task }) {
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 defaultValue={task?.assignedTo || ""}
                 required
+                disabled={isLoading}
               >
                 <option value="">Seleccionar trabajador</option>
                 {workers.map((worker) => (
-                  <option key={worker.id} value={worker.name}>
-                    {worker.name} - {worker.position}
+                  <option key={worker.id} value={worker.id}>
+                    {worker.name} {worker.position ? `- ${worker.position}` : ''}
                   </option>
                 ))}
               </select>

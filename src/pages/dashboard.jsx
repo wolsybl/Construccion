@@ -17,7 +17,7 @@ export function Dashboard() {
       <Sidebar className="w-64 border-r" role={profile?.role} onLogout={logout} />
       <main className="flex-1 p-8">
         <div className="space-y-8">
-          <WelcomeCard user={user} />
+          <WelcomeCard user={user} role={profile?.role} />
           <StatsCards role={profile?.role} />
           
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
