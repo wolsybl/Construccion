@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // Agregar este import
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { useTasks } from "@/hooks/use-tasks";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDate } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react"; // Agregar ArrowLeft
 
 export function TasksPage() {
+  const navigate = useNavigate(); // Agregar hook de navegación
   const { 
     tasks, 
     addTask, 
@@ -112,7 +114,17 @@ export function TasksPage() {
   return (
     <div className="p-8 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Gestión de Tareas</h1>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => navigate(-1)}
+            title="Volver"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-3xl font-bold">Gestión de Tareas</h1>
+        </div>
         <Button onClick={handleAddNew} disabled={isProcessing}>
           {isProcessing ? (
             <>
