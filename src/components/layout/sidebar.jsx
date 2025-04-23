@@ -12,7 +12,8 @@ import {
   UserCog,
   Clock,
   DollarSign,
-  ClipboardCheck
+  ClipboardCheck,
+  Folder // Añadimos el icono para proyectos
 } from "lucide-react"
 
 // Mapeo de IDs de rol a nombres consistentes
@@ -28,6 +29,7 @@ const menuItems = {
   Administrador: [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
     { icon: UserCog, label: "Gestión de Usuarios", href: "/users" },
+    { icon: Folder, label: "Proyectos", href: "/projects" }, // Añadimos Proyectos
     { icon: ClipboardList, label: "Tareas", href: "/tasks" },
     { icon: Package, label: "Inventario", href: "/inventory" },
     { icon: DollarSign, label: "Presupuestos", href: "/budget" }
@@ -40,9 +42,10 @@ const menuItems = {
   ],
   "Gerente de Proyecto": [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
+    { icon: Folder, label: "Proyectos", href: "/projects" }, // Añadimos Proyectos
     { icon: DollarSign, label: "Presupuestos", href: "/budget" },
-    { icon: FileText, label: "Reportes", href: "/reports" },
-    { icon: ClipboardCheck, label: "Progreso", href: "/progress" }
+    { icon: Package, label: "Inventario", href: "/inventory" },
+    { icon: ClipboardList, label: "Tareas", href: "/tasks" }
   ],
   Trabajador: [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
