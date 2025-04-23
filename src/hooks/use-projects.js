@@ -67,6 +67,24 @@ export function useProjects() {
     }
   }, []);
 
+  const addProject = async (projectData) => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .insert([projectData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      await fetchProjects(); // Actualizar lista
+      return data;
+    } catch (err) {
+      console.error("Error adding project:", err);
+      throw err;
+    }
+  };
+
   const createProject = async (projectData) => {
     try {
       const { data, error } = await supabase
@@ -130,6 +148,7 @@ export function useProjects() {
     isLoading,
     error,
     getProjectById,
+    addProject,
     createProject,
     updateProject,
     deleteProject,

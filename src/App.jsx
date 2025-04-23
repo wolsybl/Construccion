@@ -7,13 +7,14 @@ import { InventoryPage } from "@/pages/inventory";
 import { BudgetPage } from "@/pages/budget";
 import { UsersPage } from "@/pages/users";
 import { WorkerDashboard } from "@/pages/worker-dashboard";
+import { ProjectsPage } from "@/pages/projects";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { LoadingScreen } from "@/pages/loading-screen";
 
 const ROUTE_PERMISSIONS = {
-  "1": ["/", "/tasks", "/inventory", "/budget", "/users"], //admin
-  "3": ["/", "/tasks", "/inventory", "/budget"], //gerente
-  "2": ["/", "/tasks"], // jefe de obra
+  "1": ["/", "/tasks", "/inventory", "/budget", "/users", "/projects"], //admin
+  "3": ["/", "/tasks", "/inventory", "/budget", "/projects"], //gerente
+  "2": ["/", "/tasks", "/projects"], // jefe de obra
   "4": ["/"] // trabajador
 };
 
@@ -48,6 +49,7 @@ function AppContent() {
       <Route path="/tasks" element={<TasksPage />} />
       <Route path="/inventory" element={<InventoryPage />} />
       <Route path="/budget" element={<BudgetPage />} />
+      <Route path="/projects" element={<ProjectsPage />} />
       <Route path="/users" element={profile?.role.toLowerCase() === "admin" ? <UsersPage /> : <Navigate to="/" />} />
     </Routes>
   );
