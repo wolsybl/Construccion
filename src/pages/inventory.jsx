@@ -16,7 +16,8 @@ export function InventoryPage() {
     deleteItem, 
     isLoading, 
     error,
-    getLowStockItems 
+    getLowStockItems,
+    refreshInventory // Añadimos refreshInventory
   } = useInventory()
   const { toast } = useToast()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -39,7 +40,9 @@ export function InventoryPage() {
       }
       setDialogOpen(false)
       setSelectedItem(null)
+      await refreshInventory() // Actualizamos después de crear/editar
     } catch (error) {
+      console.error('Error al guardar:', error) // Agregamos log para debugging
       toast({
         variant: "destructive",
         title: "Error",
@@ -49,13 +52,14 @@ export function InventoryPage() {
   }
 
   const handleEdit = (item) => {
-    setSelectedItem(item.id) // Now we only store the ID
+    setSelectedItem(item.id)
     setDialogOpen(true)
   }
 
   const handleDelete = async (id) => {
     try {
       await deleteItem(id)
+      await refreshInventory() // Actualizamos después de eliminar
       toast({
         title: "Material eliminado",
         description: "El material se ha eliminado correctamente",

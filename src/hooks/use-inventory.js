@@ -81,27 +81,17 @@ export function useInventory() {
     try {
       const { data, error } = await supabase
         .from("inventory")
-        .update({
-          name: updates.name,
-          description: updates.description,
-          category: updates.category,
-          quantity: updates.quantity,
-          unit: updates.unit,
-          unit_cost: updates.unit_cost,
-          minimum_stock: updates.minimum_stock,
-          project_id: updates.project_id,
-          supplier: updates.supplier,
-          location: updates.location,
-          notes: updates.notes,
-          updated_at: new Date().toISOString()
-        })
+        .update(updates)
         .eq("id", id)
         .select()
         .single()
 
       if (error) throw error
 
-      setInventory(inventory.map(item => item.id === id ? data : item))
+      setInventory(inventory.map(item => 
+        item.id === id ? data : item
+      ))
+      
       return data
     } catch (error) {
       console.error("Error updating item:", error)

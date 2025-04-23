@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription, // Añadir este import
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -86,6 +87,9 @@ export function InventoryDialog({ open, onOpenChange, onSubmit, itemId }) {
           <DialogTitle>
             {itemId ? "Editar Material" : "Nuevo Material"}
           </DialogTitle>
+          <DialogDescription>
+            {itemId ? "Modifica los datos del material" : "Ingresa los datos del nuevo material"}
+          </DialogDescription>
         </DialogHeader>
         {isLoading ? (
           <div className="flex justify-center p-4">
@@ -176,12 +180,12 @@ export function InventoryDialog({ open, onOpenChange, onSubmit, itemId }) {
               </div>
               <div className="col-span-2">
                 <Label htmlFor="project_id">Proyecto</Label>
-                <Select name="project_id" defaultValue={item?.project_id || ""}>
+                <Select name="project_id" defaultValue={item?.project_id || "none"}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar proyecto" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin proyecto</SelectItem>
+                    <SelectItem value="none">Sin proyecto</SelectItem>
                     {projects?.map((project) => (
                       <SelectItem key={project.id} value={project.id}>
                         {project.name}
