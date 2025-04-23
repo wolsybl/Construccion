@@ -200,7 +200,7 @@ export function InventoryDialog({ open, onOpenChange, onSubmit, itemId }) {
                   id="description"
                   name="description"
                   defaultValue={item?.description}
-                  className="min-h-[80px]"
+                  className="min-h-[40px]"
                 />
               </div>
               <div className="col-span-2">
@@ -209,7 +209,7 @@ export function InventoryDialog({ open, onOpenChange, onSubmit, itemId }) {
                   id="notes"
                   name="notes"
                   defaultValue={item?.notes}
-                  className="min-h-[80px]"
+                  className="min-h-[40px]"
                 />
               </div>
             </div>

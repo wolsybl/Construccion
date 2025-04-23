@@ -21,6 +21,7 @@
 		"@radix-ui/react-slot": "^1.0.2",
 		"@radix-ui/react-tabs": "^1.0.4",
 		"@radix-ui/react-toast": "^1.1.5",
+		"@react-google-maps/api": "^2.20.6",
 		"@supabase/supabase-js": "^2.49.4",
 		"@vis.gl/react-google-maps": "^1.5.2",
 		"axios": "^1.8.4",
