@@ -1,5 +1,5 @@
 import React from 'react';
-import { GoogleMap, LoadScript } from '@vis.gl/react-google-maps';
+import { GoogleMap, LoadScript } from '@react-google-maps/api';
 
 const MapComponent = () => {
   const mapStyles = {
@@ -8,15 +8,15 @@ const MapComponent = () => {
   };
 
   const defaultCenter = {
-    lat: -3.43722,
-    lng: -76.5225,
+    lat: 4.8133,
+    lng: -75.6967,
   };
 
   return (
     <LoadScript googleMapsApiKey='AIzaSyDxWwPaA-_LKw_lGzEP4-f9lmWIhecP-Uw'>
       <GoogleMap
         mapContainerStyle={mapStyles}
-        zoom={10}
+        zoom={13}
         center={defaultCenter}
       />
     </LoadScript>
